@@ -1,1 +1,2 @@
-# Azure-AD-on-API-Connect-3rd-Party-OAuth
+# Using Azure AD Oauth JWTs to protect IBM API Connect (APIC) APIs  
+
