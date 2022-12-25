@@ -1,1 +1,1 @@
-# Azure-AD-OAuth-on-API-Connect-3rd-Party-OAuth
+# Azure-AD-on-API-Connect-3rd-Party-OAuth
