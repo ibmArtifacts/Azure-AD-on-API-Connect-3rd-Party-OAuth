@@ -60,7 +60,7 @@ paths:
       consumes: []
       produces: []
       security:
-        - AzureAD:
+        - Azure AD OAuth:
             - resource-write
     delete:
       responses:
@@ -91,7 +91,7 @@ paths:
         in: header
         type: string
 securityDefinitions:
-  AzureAD:
+  Azure AD OAuth:
     type: oauth2
     x-ibm-oauth-provider: azuread
     flow: accessCode
@@ -103,7 +103,7 @@ securityDefinitions:
       resource-read: ''
       resource-write: ''
 security:
-  - AzureAD:
+  - Azure AD OAuth:
       - resource-read
       - resource-write
 schemes:
