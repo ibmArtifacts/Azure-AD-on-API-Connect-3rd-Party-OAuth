@@ -16,7 +16,7 @@ x-ibm-configuration:
       - gatewayscript:
           version: 2.0.0
           title: jwt-retrieve-and-decode
-          source: "console.log('**** Running jwt-retrieve-and-decode ****');\r\n\r\n/* For APIC 3rd party OAuth, the token is sent to this introspection api via a query parameter named token, \r\ntherefore we retrieve the token from the query param, and set it as the authorization header.\r\nAlthough, if the authorization header contains the token without it being in the query param, it would still work.*/\r\nvar vTokenParameter = JSON.stringify(context.get('request.parameters.token.values[0]'));\r\nif (vTokenParameter != null){\r\n    var vToken = 'Bearer ' + JSON.stringify(context.get('request.parameters.token.values[0]')).replace (/\"/g,'');\r\n    console.log('****request.parameters.token: ' + vToken);\r\n    context.set('message.headers.authorization', vToken);\r\n}\r\n\r\n// Get the Authorizaation header.\r\nvar vAuthHeader = JSON.stringify(context.get('message.headers.authorization'));\r\n\r\n// If Authorization header is not there, throw error.\r\nif (vAuthHeader == null) {\r\n    context.reject('MissingAuthorizationHeader', 'Authorization header is not found or is empty.');\r\n    context.message.statusCode = '401 Unauthorized';\r\n}\r\n\r\n// Remove Bearer prefix from Auth header.\r\nvar vBase64TokenWithoutBearer = (context.get('message.headers.authorization').split(' ').pop());\r\nconsole.log('****message.headers.Authorization (bearer removed): ' + vBase64TokenWithoutBearer);\r\n\r\n// Function to decode the JWT.\r\nfunction decodeJwt(token) {\r\n    // JWT Header section\r\n    var vBase64JWTHeader = token.split(\".\")[0];\r\n    console.log('****vJWTHeader: ' + Buffer.from(vBase64JWTHeader, \"base64\"));\r\n  \r\n    // JWT Payload section\r\n    var vBase64JWTPayload = token.split(\".\")[1];\r\n    console.log('****vJWTPayload: ' + Buffer.from(vBase64JWTPayload, \"base64\"));\r\n \r\n    var vJWTHeader = Buffer.from(vBase64JWTHeader, \"base64\");\r\n    var vJWTPayload = Buffer.from(vBase64JWTPayload, \"base64\");\r\n    \r\n    var vJWTDecoded = '{\"Header\":[' + vJWTHeader + '], \"Payload\": [' + vJWTPayload + ']}';\r\n    \r\n    return JSON.parse(vJWTDecoded.toString());\r\n}\r\n\r\n// Set the decoded JWT from the function output to APIC context var to be used downstream.\r\nvar vDecodedJWT = decodeJwt(vBase64TokenWithoutBearer);\r\ncontext.set('decodedjwt', vDecodedJWT);\r\n\r\nconsole.log('****Completed jwt-retrieve-and-decode. Next invoking MS Key Store: ' + context.get('api.properties.ms-key-store-url') + ' ****');\r\n\r\n\r\n\r\n"
+          source: "console.log('**** Running jwt-retrieve-and-decode ****');\r\n\r\n/* For APIC 3rd party OAuth, the token is sent to this introspection api via a query parameter named token, \r\ntherefore we retrieve the token from the query param, and set it as the authorization header.\r\nAlthough, if the authorization header contains the token without it being in the query param, it would still work.*/\r\nvar vTokenParameter = JSON.stringify(context.get('request.parameters.token.values[0]'));\r\nif (vTokenParameter != null){\r\n    var vToken = 'Bearer ' + JSON.stringify(context.get('request.parameters.token.values[0]')).replace (/\"/g,'');\r\n    console.log('****request.parameters.token: ' + vToken);\r\n    context.set('message.headers.authorization', vToken);\r\n}\r\n\r\n// Get the Authorizaation header.\r\nvar vAuthHeader = context.get('message.headers.authorization');\r\n\r\n// If Authorization header is not there, throw error.\r\nif (vAuthHeader == null) {\r\n    context.reject('MissingAuthorizationHeader', 'Authorization header is not found or is empty.');\r\n    context.message.statusCode = '401 Unauthorized';\r\n}\r\n\r\n// Remove Bearer prefix from Auth header.\r\nvar vBase64TokenWithoutBearer = (context.get('message.headers.authorization').split(' ').pop());\r\nconsole.log('****message.headers.Authorization (bearer removed): ' + vBase64TokenWithoutBearer);\r\n\r\n// Function to decode the JWT.\r\nfunction decodeJwt(token) {\r\n    // JWT Header section\r\n    var vBase64JWTHeader = token.split(\".\")[0];\r\n    console.log('****vJWTHeader: ' + Buffer.from(vBase64JWTHeader, \"base64\"));\r\n  \r\n    // JWT Payload section\r\n    var vBase64JWTPayload = token.split(\".\")[1];\r\n    console.log('****vJWTPayload: ' + Buffer.from(vBase64JWTPayload, \"base64\"));\r\n \r\n    var vJWTHeader = Buffer.from(vBase64JWTHeader, \"base64\");\r\n    var vJWTPayload = Buffer.from(vBase64JWTPayload, \"base64\");\r\n    \r\n    var vJWTDecoded = '{\"Header\":[' + vJWTHeader + '], \"Payload\": [' + vJWTPayload + ']}';\r\n    \r\n    return JSON.parse(vJWTDecoded.toString());\r\n}\r\n\r\n// Set the decoded JWT from the function output to APIC context var to be used downstream.\r\nvar vDecodedJWT = decodeJwt(vBase64TokenWithoutBearer);\r\ncontext.set('decodedjwt', vDecodedJWT);\r\n\r\n// Set the Authorization header to the context varaible vAuthHeader to be used later in the jwt-validate policy.\r\ncontext.set('vAuthHeader', vAuthHeader);\r\n\r\n// Remove authorization header before the Invoke Policy for caching to work: DataPower doesn't cache responses when it sees an authorization header.\r\ncontext.clear('message.headers.authorization');\r\n\r\nconsole.log('****Completed jwt-retrieve-and-decode. Next invoking MS Key Store: ' + context.get('api.properties.ms-key-store-url') + ' ****');\r\n\r\n\r\n\r\n"
       - invoke:
           version: 2.2.0
           title: invoke-azure-key-store
@@ -32,8 +32,8 @@ x-ibm-configuration:
           verb: GET
           chunked-uploads: true
           persistent-connection: true
-          cache-response: protocol
-          cache-ttl: 900
+          cache-response: time-to-live
+          cache-ttl: 43200
           stop-on-error:
             - ConnectionError
             - SOAPError
@@ -41,10 +41,11 @@ x-ibm-configuration:
           websocket-upgrade: false
           target-url: $(ms-key-store-url)
           output: ms-keyids
+          cache-key: ''
       - gatewayscript:
           version: 2.0.0
           title: Introspect MS-Key-Store
-          source: >
+          source: >-
             console.log('**** Running Introspect-MS-Key-Store ****')
 
 
@@ -85,7 +86,7 @@ x-ibm-configuration:
       - jwt-validate:
           version: 2.0.0
           title: jwt-validate
-          jwt: message.headers.authorization
+          jwt: vAuthHeader
           output-claims: decoded.claims
           jws-jwk: vJWK
           jwe-jwk: ''
