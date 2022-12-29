@@ -209,7 +209,10 @@ paths:
             type: string
       consumes: []
       produces: []
-    parameters: []
+    parameters:
+      - name: authorization
+        in: header
+        type: string
 securityDefinitions:
   clientID:
     type: apiKey
