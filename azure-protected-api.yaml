@@ -93,7 +93,7 @@ paths:
 securityDefinitions:
   Azure AD OAuth:
     type: oauth2
-    x-ibm-oauth-provider: azuread
+    x-ibm-oauth-provider: azure-ad
     flow: accessCode
     authorizationUrl: >-
       https://login.microsoftonline.com/037fbce0-c813-4c51-b804-3a0e2d34a391/oauth2/v2.0/authorize
